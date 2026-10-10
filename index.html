@@ -1,0 +1,1937 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#070b10">
+<meta name="description" content="Simulador técnico de arquitecturas de red: multiusuario, cliente-servidor y sistemas distribuidos.">
+<title>Simulador de Arquitecturas de Red</title>
+<style>
+/* ============================================================
+   RESET / BASE
+   ============================================================ */
+*, *::before, *::after {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+html { -webkit-text-size-adjust: 100%; }
+html, body { margin: 0; padding: 0; }
+body {
+  background-color: #070b10;
+  background-image:
+    linear-gradient(rgba(34,211,238,.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(34,211,238,.035) 1px, transparent 1px);
+  background-size: 28px 28px;
+  color: #d7e3ef;
+  font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+:root {
+  --bg: #070b10;
+  --panel: #0e1621;
+  --panel2: #121e2b;
+  --line: #1d2c3e;
+  --cyan: #22d3ee;
+  --amber: #f5a623;
+  --green: #2ee06a;
+  --red: #ef4444;
+  --txt: #d7e3ef;
+  --mut: #7b8ea3;
+}
+
+/* ============================================================
+   TOPBAR
+   ============================================================ */
+#topbar {
+  position: sticky;
+  top: 0;
+  z-index: 60;
+  background: rgba(7,11,16,.94);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.brand {
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 11px;
+  letter-spacing: 1.4px;
+  color: var(--cyan);
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 8px var(--green);
+  flex: 0 0 auto;
+  animation: pulse 2.2s infinite;
+}
+@keyframes pulse {
+  0%,100% { opacity: 1; }
+  50% { opacity: .35; }
+}
+.chip {
+  font-size: 11px;
+  color: var(--mut);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 4px 10px;
+  max-width: 45vw;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 0 0 auto;
+}
+.hidden { display: none !important; }
+
+/* ============================================================
+   LAYOUT
+   ============================================================ */
+.wrap {
+  max-width: 660px;
+  margin: 0 auto;
+  padding: 16px 14px calc(70px + env(safe-area-inset-bottom));
+}
+.screen { display: none; }
+.screen.active { display: block; animation: fadeIn .28s ease; }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ============================================================
+   HERO / LOGIN
+   ============================================================ */
+.hero { padding: 12px 2px 20px; }
+.hero-tag {
+  display: inline-block;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 10.5px;
+  letter-spacing: 1.6px;
+  color: var(--amber);
+  border: 1px solid rgba(245,166,35,.35);
+  background: rgba(245,166,35,.08);
+  border-radius: 20px;
+  padding: 5px 12px;
+  margin-bottom: 14px;
+}
+.hero h1 {
+  font-size: 24px;
+  line-height: 1.22;
+  margin: 0 0 10px;
+  color: #ffffff;
+  font-weight: 700;
+  letter-spacing: -.3px;
+}
+.hero p { margin: 0; color: var(--mut); font-size: 14.5px; }
+
+.card {
+  background: linear-gradient(180deg, var(--panel2), var(--panel));
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 14px;
+}
+.card-h {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 11px;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  color: var(--cyan);
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px dashed var(--line);
+}
+
+.lbl {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: .4px;
+  color: var(--mut);
+  margin-bottom: 7px;
+  text-transform: uppercase;
+}
+.inp {
+  display: block;
+  width: 100%;
+  min-height: 52px;
+  background: #0a131c;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: var(--txt);
+  font-family: inherit;
+  font-size: 16px;
+  padding: 13px 14px;
+  margin-bottom: 16px;
+  transition: border-color .2s, box-shadow .2s;
+}
+.inp::placeholder { color: #4d6076; }
+.inp:focus {
+  outline: none;
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 3px rgba(34,211,238,.14);
+}
+
+/* ============================================================
+   BOTONES
+   ============================================================ */
+.btn {
+  display: block;
+  width: 100%;
+  min-height: 52px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: .3px;
+  cursor: pointer;
+  padding: 13px 16px;
+  transition: transform .12s, background .2s, box-shadow .2s, opacity .2s;
+  text-align: center;
+}
+.btn:active { transform: translateY(1px) scale(.995); }
+.btn.primary {
+  background: linear-gradient(180deg, #35e0f7, #0d9fbe);
+  color: #04161c;
+  box-shadow: 0 6px 20px rgba(34,211,238,.22);
+}
+.btn.primary:disabled {
+  background: #16232f;
+  color: #4c5f73;
+  box-shadow: none;
+  cursor: not-allowed;
+  border-color: var(--line);
+}
+.btn.ghost {
+  background: transparent;
+  border-color: var(--line);
+  color: var(--mut);
+  font-size: 14px;
+  min-height: 46px;
+}
+.btn.ghost:active { background: rgba(34,211,238,.06); }
+.btn.small {
+  width: auto;
+  min-height: 40px;
+  padding: 9px 18px;
+  font-size: 14px;
+  border-radius: 10px;
+  background: rgba(34,211,238,.1);
+  border: 1px solid rgba(34,211,238,.4);
+  color: var(--cyan);
+}
+
+/* ============================================================
+   CRUMB / TAGS
+   ============================================================ */
+.crumb {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.back {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--mut);
+  border-radius: 10px;
+  padding: 9px 14px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 42px;
+}
+.back:active { background: rgba(34,211,238,.07); }
+.tag {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 10.5px;
+  letter-spacing: 1.5px;
+  padding: 6px 11px;
+  border-radius: 20px;
+  border: 1px solid;
+  white-space: nowrap;
+}
+.tag.amber { color: var(--amber); border-color: rgba(245,166,35,.4); background: rgba(245,166,35,.08); }
+.tag.cyan  { color: var(--cyan);  border-color: rgba(34,211,238,.4); background: rgba(34,211,238,.08); }
+.tag.green { color: var(--green); border-color: rgba(46,224,106,.4); background: rgba(46,224,106,.08); }
+
+h2.sec {
+  font-size: 20px;
+  margin: 0 0 8px;
+  color: #fff;
+  line-height: 1.25;
+  letter-spacing: -.2px;
+}
+.lead {
+  margin: 0 0 16px;
+  color: var(--mut);
+  font-size: 14.5px;
+  line-height: 1.55;
+}
+.lead b { color: var(--cyan); font-weight: 600; }
+
+/* ============================================================
+   TARJETAS DE PASOS (ordenamiento)
+   ============================================================ */
+.counter-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 12px;
+  letter-spacing: 1px;
+  color: var(--mut);
+}
+.counter-bar .bar {
+  flex: 1;
+  height: 5px;
+  background: #131f2b;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.counter-bar .bar i {
+  display: block;
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--cyan), var(--green));
+  border-radius: 4px;
+  transition: width .3s ease;
+}
+
+.steps { margin-bottom: 6px; }
+.step {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  padding: 13px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: border-color .18s, background .18s, transform .1s;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.step:active { transform: scale(.988); }
+.step.sel {
+  border-color: var(--cyan);
+  background: #0c1f2c;
+  box-shadow: inset 0 0 0 1px rgba(34,211,238,.25);
+}
+.step.wrong {
+  border-color: var(--red);
+  background: #221013;
+  animation: shake .4s;
+}
+.step .badge {
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-weight: 700;
+  font-size: 15px;
+  color: #4d6076;
+  transition: all .2s;
+}
+.step.sel .badge {
+  background: var(--cyan);
+  border-color: var(--cyan);
+  color: #04161c;
+  box-shadow: 0 0 12px rgba(34,211,238,.5);
+}
+.step-body { flex: 1; min-width: 0; }
+.step-t {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #eaf3fb;
+  margin-bottom: 3px;
+}
+.step.sel .step-t { color: var(--cyan); }
+.step-d { font-size: 13px; color: var(--mut); line-height: 1.45; }
+
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  20% { transform: translateX(-7px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(3px); }
+}
+
+/* ============================================================
+   TEXTAREA + CONTADOR
+   ============================================================ */
+.field { margin: 20px 0 6px; }
+.field label {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .5px;
+  text-transform: uppercase;
+  color: var(--mut);
+  margin-bottom: 9px;
+}
+.req { color: var(--amber); font-weight: 600; text-transform: none; letter-spacing: 0; }
+textarea {
+  display: block;
+  width: 100%;
+  min-height: 140px;
+  background: #0a131c;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  color: var(--txt);
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 1.55;
+  padding: 13px;
+  resize: vertical;
+  transition: border-color .2s, box-shadow .2s;
+}
+textarea::placeholder { color: #4a5c70; }
+textarea:focus {
+  outline: none;
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 3px rgba(34,211,238,.13);
+}
+.wc {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 12px;
+  letter-spacing: .6px;
+  color: var(--mut);
+  margin-top: 8px;
+  padding: 0 3px;
+}
+.wc.ok { color: var(--green); }
+.wc.bad { color: var(--amber); }
+
+/* ============================================================
+   FEEDBACK
+   ============================================================ */
+.feedback {
+  margin-top: 14px;
+  border-radius: 13px;
+  padding: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transition: max-height .35s ease, opacity .3s ease, padding .3s ease;
+}
+.feedback.show {
+  max-height: 420px;
+  opacity: 1;
+  padding: 14px;
+  border: 1px solid;
+}
+.feedback.err {
+  background: rgba(239,68,68,.08);
+  border-color: rgba(239,68,68,.5);
+  color: #ffcdcd;
+}
+.feedback.ok {
+  background: rgba(46,224,106,.07);
+  border-color: rgba(46,224,106,.45);
+  color: #c6ffdd;
+}
+.feedback .fb-btn { margin-top: 12px; }
+
+/* ============================================================
+   PANEL DE MISIONES
+   ============================================================ */
+.student-box {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.student-box > div {
+  flex: 1 1 45%;
+  min-width: 130px;
+  background: #0a131c;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  padding: 10px 12px;
+}
+.student-box .k {
+  display: block;
+  font-size: 10.5px;
+  letter-spacing: 1.3px;
+  text-transform: uppercase;
+  color: var(--mut);
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  margin-bottom: 3px;
+}
+.student-box .v {
+  display: block;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: #eaf3fb;
+  word-break: break-word;
+}
+
+.mission {
+  background: linear-gradient(180deg, var(--panel2), var(--panel));
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  padding: 15px;
+  margin-bottom: 12px;
+  transition: border-color .25s;
+}
+.mission.done { border-color: rgba(46,224,106,.45); }
+.m-head {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-bottom: 9px;
+}
+.m-num {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--cyan);
+  border: 1px solid rgba(34,211,238,.4);
+  background: rgba(34,211,238,.08);
+  border-radius: 8px;
+  padding: 4px 9px;
+  flex: 0 0 auto;
+}
+.mission.done .m-num {
+  color: var(--green);
+  border-color: rgba(46,224,106,.45);
+  background: rgba(46,224,106,.08);
+}
+.m-title {
+  font-size: 15.5px;
+  font-weight: 700;
+  color: #eaf3fb;
+  line-height: 1.25;
+}
+.m-desc {
+  margin: 0 0 13px;
+  font-size: 13.5px;
+  color: var(--mut);
+  line-height: 1.5;
+}
+.m-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.mstat {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 10.5px;
+  letter-spacing: 1.3px;
+  padding: 5px 10px;
+  border-radius: 20px;
+  border: 1px solid;
+}
+.mstat.pend { color: var(--amber); border-color: rgba(245,166,35,.4); background: rgba(245,166,35,.07); }
+.mstat.ok   { color: var(--green); border-color: rgba(46,224,106,.45); background: rgba(46,224,106,.08); }
+
+/* ============================================================
+   CLÚSTER (Misión 3)
+   ============================================================ */
+.cluster {
+  background: #08111a;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  padding: 16px 10px;
+  margin: 4px 0 16px;
+  position: relative;
+  overflow: hidden;
+}
+.cl-row {
+  display: flex;
+  justify-content: center;
+  gap: 9px;
+  position: relative;
+  z-index: 2;
+}
+.cl-row.nodes { margin: 0; }
+.cl-link {
+  height: 26px;
+  width: 2px;
+  background: linear-gradient(180deg, rgba(34,211,238,.05), rgba(34,211,238,.45), rgba(34,211,238,.05));
+  margin: 3px auto;
+  border-radius: 2px;
+}
+.node {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 118px;
+  background: #0f1c28;
+  border: 1px solid #22364b;
+  border-radius: 11px;
+  padding: 10px 5px;
+  text-align: center;
+  transition: all .35s ease;
+  position: relative;
+}
+.node .nd-ico {
+  display: block;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 17px;
+  line-height: 1;
+  margin-bottom: 5px;
+  color: #48627b;
+  transition: color .3s;
+}
+.node .nd-lbl {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .4px;
+  color: #93a9bd;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.node .nd-st {
+  display: block;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 9px;
+  letter-spacing: .8px;
+  margin-top: 4px;
+  color: #3f5568;
+}
+.node.active {
+  border-color: var(--cyan);
+  background: #0b2431;
+  box-shadow: 0 0 16px rgba(34,211,238,.35);
+}
+.node.active .nd-ico { color: var(--cyan); }
+.node.active .nd-st { color: var(--cyan); }
+.node.offline {
+  border-color: var(--red);
+  background: #261014;
+  opacity: .95;
+  animation: flicker .5s;
+}
+.node.offline .nd-ico { color: var(--red); }
+.node.offline .nd-lbl { color: #ff9d9d; }
+.node.offline .nd-st { color: var(--red); }
+.node.done {
+  border-color: var(--green);
+  background: #0a2418;
+  box-shadow: 0 0 16px rgba(46,224,106,.35);
+}
+.node.done .nd-ico { color: var(--green); }
+.node.done .nd-st { color: var(--green); }
+@keyframes flicker {
+  0%,100% { opacity: .95; }
+  25% { opacity: .35; }
+  50% { opacity: .9; }
+  75% { opacity: .4; }
+}
+
+.acts { display: grid; gap: 10px; margin-bottom: 4px; }
+.act {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  padding: 13px;
+  color: var(--txt);
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color .18s, background .18s, transform .1s, opacity .25s;
+  min-height: 58px;
+}
+.act:active { transform: scale(.988); }
+.act .act-ico {
+  flex: 0 0 34px;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: rgba(245,166,35,.1);
+  border: 1px solid rgba(245,166,35,.35);
+  color: var(--amber);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-weight: 700;
+  font-size: 14px;
+}
+.act .act-txt { flex: 1; min-width: 0; }
+.act .act-t {
+  display: block;
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #eaf3fb;
+  margin-bottom: 2px;
+}
+.act .act-d {
+  display: block;
+  font-size: 12.5px;
+  color: var(--mut);
+  line-height: 1.4;
+}
+.act.done {
+  border-color: rgba(46,224,106,.45);
+  background: rgba(46,224,106,.05);
+  opacity: .62;
+  pointer-events: none;
+}
+.act.done .act-ico {
+  background: rgba(46,224,106,.12);
+  border-color: rgba(46,224,106,.5);
+  color: var(--green);
+}
+.act.wrong { animation: shake .4s; border-color: var(--red); }
+
+.log {
+  background: #060d14;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px;
+  margin: 14px 0 4px;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--mut);
+  max-height: 230px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.log-item {
+  padding: 6px 0;
+  border-bottom: 1px dashed rgba(29,44,62,.8);
+  animation: fadeIn .3s ease;
+}
+.log-item:last-child { border-bottom: none; }
+.log-item b { color: var(--cyan); font-weight: 700; }
+.log-item.ok b { color: var(--green); }
+.log-item.err b { color: var(--red); }
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+#toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(18px + env(safe-area-inset-bottom));
+  transform: translate(-50%, 160%);
+  background: #16232f;
+  border: 1px solid var(--line);
+  color: var(--txt);
+  padding: 13px 17px;
+  border-radius: 13px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+  max-width: 92vw;
+  width: max-content;
+  z-index: 999;
+  transition: transform .32s cubic-bezier(.2,.9,.3,1.25);
+  box-shadow: 0 12px 34px rgba(0,0,0,.6);
+  text-align: center;
+}
+#toast.show { transform: translate(-50%, 0); }
+#toast.err { border-color: rgba(239,68,68,.7); color: #ffd2d2; }
+#toast.ok  { border-color: rgba(46,224,106,.7); color: #ccffe0; }
+
+/* ============================================================
+   INFORME
+   ============================================================ */
+.rep-block {
+  background: #0a131c;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--cyan);
+  border-radius: 11px;
+  padding: 13px;
+  margin-bottom: 12px;
+}
+.rep-block h4 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  letter-spacing: .6px;
+  text-transform: uppercase;
+  color: var(--cyan);
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+}
+.rep-block p {
+  margin: 0;
+  font-size: 13.5px;
+  color: #b9c9d8;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.rep-block .empty { color: var(--amber); font-style: italic; }
+
+.note {
+  font-size: 12.5px;
+  color: var(--mut);
+  line-height: 1.5;
+  text-align: center;
+  margin-top: 14px;
+}
+
+/* ============================================================
+   DESKTOP
+   ============================================================ */
+@media (min-width: 560px) {
+  .hero h1 { font-size: 30px; }
+  h2.sec { font-size: 23px; }
+  .step-d { font-size: 13.5px; }
+  .node { max-width: 140px; }
+  .acts { grid-template-columns: 1fr 1fr; }
+}
+</style>
+</head>
+<body>
+
+<header id="topbar">
+  <div class="brand"><span class="dot"></span> SIMULADOR DE ARQUITECTURAS DE RED</div>
+  <div id="userchip" class="chip hidden"></div>
+</header>
+
+<main class="wrap">
+
+  <!-- ==========================================================
+       PANTALLA 1 — LOGIN
+       ========================================================== -->
+  <section id="scr-login" class="screen active">
+    <div class="hero">
+      <span class="hero-tag">REDES · TRABAJO PRÁCTICO</span>
+      <h1>Sistemas Multiusuario, Cliente-Servidor y Distribuidos</h1>
+      <p>Simulador técnico interactivo. Completá tus datos para habilitar las tres misiones y generar el informe de práctica.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-h">Identificación del alumno</div>
+      <label class="lbl" for="in-nombre">Apellido y Nombre</label>
+      <input id="in-nombre" class="inp" type="text" placeholder="Ej: Gómez, María Laura" autocomplete="name" autocapitalize="words">
+
+      <label class="lbl" for="in-curso">Curso / División</label>
+      <input id="in-curso" class="inp" type="text" placeholder="Ej: 6° A — Turno Mañana" autocomplete="off" autocapitalize="characters">
+
+      <button id="btn-login" class="btn primary" type="button">Ingresar al simulador →</button>
+    </div>
+  </section>
+
+  <!-- ==========================================================
+       PANTALLA 2 — PANEL DE MISIONES
+       ========================================================== -->
+  <section id="scr-menu" class="screen">
+    <div class="card">
+      <div class="card-h">Panel de control · Sesión activa</div>
+      <div class="student-box">
+        <div><span class="k">Alumno</span><span class="v" id="menu-name">—</span></div>
+        <div><span class="k">Curso / División</span><span class="v" id="menu-curso">—</span></div>
+      </div>
+    </div>
+
+    <div class="mission" id="card-m1">
+      <div class="m-head"><span class="m-num">01</span><span class="m-title">Multiusuario · Time-Sharing</span></div>
+      <p class="m-desc">Ordená cronológicamente la Ruta del Dato Multiusuario y redactá una conclusión técnica sobre el cambio de contexto.</p>
+      <div class="m-foot">
+        <span class="mstat pend" id="st-m1">PENDIENTE</span>
+        <button class="btn small" type="button" data-go="m1">Abrir misión</button>
+      </div>
+    </div>
+
+    <div class="mission" id="card-m2">
+      <div class="m-head"><span class="m-num">02</span><span class="m-title">Cliente-Servidor · Ruta del Paquete</span></div>
+      <p class="m-desc">Reconstruí el recorrido de una petición desde el navegador del cliente hasta la respuesta del servidor y justificá el modelo.</p>
+      <div class="m-foot">
+        <span class="mstat pend" id="st-m2">PENDIENTE</span>
+        <button class="btn small" type="button" data-go="m2">Abrir misión</button>
+      </div>
+    </div>
+
+    <div class="mission" id="card-m3">
+      <div class="m-head"><span class="m-num">03</span><span class="m-title">Distribuidos · Tolerancia a Fallos</span></div>
+      <p class="m-desc">Ejecutá el protocolo de recuperación ante el fallo catastrófico del Nodo A dentro de un clúster de tres nodos con SAN compartido.</p>
+      <div class="m-foot">
+        <span class="mstat pend" id="st-m3">PENDIENTE</span>
+        <button class="btn small" type="button" data-go="m3">Abrir misión</button>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:18px;">
+      <div class="card-h">Cierre de la práctica</div>
+      <button id="go-report" class="btn primary" type="button" disabled>🔒 Completá las 3 misiones para el informe</button>
+    </div>
+  </section>
+
+  <!-- ==========================================================
+       PANTALLA 3 — MISIÓN 1
+       ========================================================== -->
+  <section id="scr-m1" class="screen">
+    <div class="crumb">
+      <button class="back" type="button" data-go="menu">← Panel</button>
+      <span class="tag amber">MISIÓN 01 · MULTIUSUARIO</span>
+    </div>
+
+    <h2 class="sec">Ruta del Dato: Procesamiento Multiusuario</h2>
+    <p class="lead">El procesador alterna rápidamente entre sesiones activas mediante <b>time-sharing</b>. Tocá las tarjetas en el orden cronológico correcto: del <b>1</b> al <b>4</b>. Podés tocar una tarjeta numerada para quitarla y reordenar.</p>
+
+    <div class="counter-bar">
+      <span id="m1-counter">0/4</span>
+      <span class="bar"><i id="m1-bar"></i></span>
+    </div>
+
+    <div class="steps" id="m1-list"></div>
+
+    <button class="btn ghost" type="button" id="m1-reset">↺ Reiniciar orden</button>
+
+    <div class="field">
+      <label for="m1-text">Conclusión técnica <span class="req">(mínimo 15 palabras)</span></label>
+      <textarea id="m1-text" placeholder="Explicá con tus palabras cómo el time-sharing, la interrupción de hardware y el cambio de contexto en RAM/CPU permiten que varios usuarios compartan una única CPU sin interferirse..."></textarea>
+      <div class="wc" id="m1-wc"><span>0 palabras</span><span>mínimo 15</span></div>
+    </div>
+
+    <button class="btn primary" type="button" id="m1-check">Validar Misión 1</button>
+    <div class="feedback" id="m1-fb"></div>
+  </section>
+
+  <!-- ==========================================================
+       PANTALLA 4 — MISIÓN 2
+       ========================================================== -->
+  <section id="scr-m2" class="screen">
+    <div class="crumb">
+      <button class="back" type="button" data-go="menu">← Panel</button>
+      <span class="tag cyan">MISIÓN 02 · CLIENTE-SERVIDOR</span>
+    </div>
+
+    <h2 class="sec">Ruta del Dato: Petición a través de la Red</h2>
+    <p class="lead">El modelo <b>petición-respuesta</b> es iniciado siempre por el cliente. Ordená del <b>1</b> al <b>4</b> el recorrido del paquete desde el navegador hasta la pantalla del usuario.</p>
+
+    <div class="counter-bar">
+      <span id="m2-counter">0/4</span>
+      <span class="bar"><i id="m2-bar"></i></span>
+    </div>
+
+    <div class="steps" id="m2-list"></div>
+
+    <button class="btn ghost" type="button" id="m2-reset">↺ Reiniciar orden</button>
+
+    <div class="field">
+      <label for="m2-text">Justificación del modelo <span class="req">(mínimo 15 palabras)</span></label>
+      <textarea id="m2-text" placeholder="Justificá por qué la arquitectura cliente-servidor concentra los recursos y el procesamiento en el servidor, y qué rol cumplen los protocolos TCP/IP, HTTP, SSH o RDP en ese intercambio..."></textarea>
+      <div class="wc" id="m2-wc"><span>0 palabras</span><span>mínimo 15</span></div>
+    </div>
+
+    <button class="btn primary" type="button" id="m2-check">Validar Misión 2</button>
+    <div class="feedback" id="m2-fb"></div>
+  </section>
+
+  <!-- ==========================================================
+       PANTALLA 5 — MISIÓN 3
+       ========================================================== -->
+  <section id="scr-m3" class="screen">
+    <div class="crumb">
+      <button class="back" type="button" data-go="menu">← Panel</button>
+      <span class="tag green">MISIÓN 03 · DISTRIBUIDOS</span>
+    </div>
+
+    <h2 class="sec">Clúster de Tres Nodos · Tolerancia a Fallos</h2>
+    <p class="lead">Ejecutá las acciones del protocolo en el <b>orden lógico correcto</b>. Cada acción correcta se refleja en la topología del clúster en tiempo real.</p>
+
+    <div class="cluster">
+      <div class="cl-row">
+        <div class="node" id="nd-lb">
+          <span class="nd-ico">⇄</span>
+          <span class="nd-lbl">Balanceador</span>
+          <span class="nd-st" id="st-nd-lb">EN ESPERA</span>
+        </div>
+      </div>
+      <div class="cl-link"></div>
+      <div class="cl-row nodes">
+        <div class="node" id="nd-a">
+          <span class="nd-ico">▤</span>
+          <span class="nd-lbl">Nodo A</span>
+          <span class="nd-st" id="st-nd-a">STANDBY</span>
+        </div>
+        <div class="node" id="nd-b">
+          <span class="nd-ico">▤</span>
+          <span class="nd-lbl">Nodo B</span>
+          <span class="nd-st" id="st-nd-b">STANDBY</span>
+        </div>
+        <div class="node" id="nd-c">
+          <span class="nd-ico">▤</span>
+          <span class="nd-lbl">Nodo C</span>
+          <span class="nd-st" id="st-nd-c">STANDBY</span>
+        </div>
+      </div>
+      <div class="cl-link"></div>
+      <div class="cl-row">
+        <div class="node" id="nd-san">
+          <span class="nd-ico">▦</span>
+          <span class="nd-lbl">SAN Compartido</span>
+          <span class="nd-st" id="st-nd-san">IDLE</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="acts" id="m3-actions"></div>
+
+    <div class="log" id="m3-log">
+      <div class="log-item">&gt; Clúster inicializado. 3 nodos en línea. Almacenamiento SAN compartido disponible.</div>
+      <div class="log-item">&gt; Esperando primera acción del protocolo de tolerancia a fallos…</div>
+    </div>
+
+    <div class="field">
+      <label for="m3-text">Conclusión sobre resiliencia <span class="req">(mínimo 15 palabras)</span></label>
+      <textarea id="m3-text" placeholder="Concluí por qué un sistema distribuido con replicación, pasaje de mensajes y almacenamiento compartido SAN sobrevive al fallo de un nodo sin que el usuario final perciba la caída..."></textarea>
+      <div class="wc" id="m3-wc"><span>0 palabras</span><span>mínimo 15</span></div>
+    </div>
+
+    <button class="btn primary" type="button" id="m3-check">Validar Misión 3</button>
+    <div class="feedback" id="m3-fb"></div>
+  </section>
+
+  <!-- ==========================================================
+       PANTALLA 6 — INFORME
+       ========================================================== -->
+  <section id="scr-report" class="screen">
+    <div class="crumb">
+      <button class="back" type="button" data-go="menu">← Panel</button>
+      <span class="tag green">INFORME FINAL</span>
+    </div>
+
+    <h2 class="sec">Informe de Práctica</h2>
+    <p class="lead">Revisá el resumen antes de descargar. El archivo <b>.doc</b> incluirá tus datos, el estado de cada misión y las redacciones completas.</p>
+
+    <div class="card">
+      <div class="card-h">Estado de resolución</div>
+      <div class="rep-block" id="rep-m1"></div>
+      <div class="rep-block" id="rep-m2"></div>
+      <div class="rep-block" id="rep-m3"></div>
+    </div>
+
+    <button id="btn-doc" class="btn primary" type="button" disabled>📄 Descargar Informe de Práctica (.doc)</button>
+    <p class="note">El archivo se genera localmente en tu dispositivo. No se envía información a ningún servidor.</p>
+  </section>
+
+</main>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ============================================================
+     CONSTANTES Y DATOS
+     ============================================================ */
+  var MIN_WORDS = 15;
+
+  var M1_STEPS = [
+    { t: 'Solicitud', d: 'La terminal del usuario (teclado / pantalla) envía una instrucción al sistema.' },
+    { t: 'Interrupción', d: 'El hardware genera una interrupción; el procesador pausa la tarea actual y entra en modo Kernel.' },
+    { t: 'Cambio de Contexto', d: 'El estado del Usuario A se guarda en la RAM; se carga el estado del Usuario B en los registros de la CPU.' },
+    { t: 'Ejecución Aislada', d: 'La CPU ejecuta la instrucción del Usuario B dentro de su segmento de memoria virtual paginada.' }
+  ];
+
+  var M2_STEPS = [
+    { t: 'Formateo del Paquete', d: 'El navegador del cliente encapsula una solicitud (ej. HTTP) en paquetes TCP/IP.' },
+    { t: 'Enrutamiento LAN/WAN', d: 'El paquete atraviesa switches locales y routers, buscando la ruta óptima hacia la IP del servidor.' },
+    { t: 'Procesamiento Central', d: 'La tarjeta de red (NIC) del servidor recibe la petición, la procesa con sus recursos locales (CPU / Base de datos) y genera el resultado.' },
+    { t: 'Respuesta Despachada', d: 'El servidor invierte el proceso y envía los datos procesados de vuelta por la red hasta la pantalla del cliente.' }
+  ];
+
+  var M3_STEPS = [
+    { t: 'Distribución', d: 'El balanceador de carga divide la tarea masiva.', log: 'Petición masiva entrante. El balanceador de carga divide la tarea entre el Nodo A y el Nodo B.' },
+    { t: 'Fallo físico', d: 'El Nodo A sufre un fallo catastrófico.', log: 'ALERTA: el procesador o la red del Nodo A sufren un fallo catastrófico (kernel panic / corte de energía).' },
+    { t: 'Detección y ruteo', d: 'El pasaje de mensajes detecta la ausencia del Nodo A.', log: 'El pasaje de mensajes detecta la ausencia del Nodo A. La tarea es reasignada instantáneamente al Nodo C.' },
+    { t: 'Recuperación desde SAN', d: 'El Nodo C retoma el estado guardado en el SAN.', log: 'El Nodo C accede al estado guardado en el almacenamiento SAN compartido y completa la operación. El usuario final no percibe la caída.' }
+  ];
+
+  /* ============================================================
+     ESTADO GLOBAL
+     ============================================================ */
+  var S = {
+    alumno: '',
+    curso: '',
+    m1: { sel: [], txt: '', done: false, disp: [] },
+    m2: { sel: [], txt: '', done: false, disp: [] },
+    m3: { idx: 0, txt: '', done: false, disp: [] }
+  };
+
+  /* ============================================================
+     UTILIDADES
+     ============================================================ */
+  function $(id) { return document.getElementById(id); }
+
+  function countWords(str) {
+    if (!str) return 0;
+    var parts = String(str).trim().split(/\s+/);
+    var n = 0;
+    for (var i = 0; i < parts.length; i++) {
+      if (parts[i].length > 0) n++;
+    }
+    return n;
+  }
+
+  function shuffle(arr) {
+    var a = arr.slice();
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+    }
+    return a;
+  }
+
+  function shuffleDistinct(n) {
+    var base = [];
+    for (var i = 0; i < n; i++) base.push(i);
+    var out = shuffle(base);
+    var guard = 0;
+    while (guard < 60) {
+      var identity = true;
+      for (var k = 0; k < out.length; k++) {
+        if (out[k] !== k) { identity = false; break; }
+      }
+      if (!identity) break;
+      out = shuffle(base);
+      guard++;
+    }
+    return out;
+  }
+
+  function vib(pattern) {
+    if (navigator.vibrate) {
+      try { navigator.vibrate(pattern); } catch (e) { /* silencioso */ }
+    }
+  }
+
+  var toastTimer = null;
+  function toast(msg, type) {
+    var t = $('toast');
+    t.textContent = msg;
+    t.className = 'show ' + (type || '');
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () {
+      t.className = '';
+    }, 3400);
+  }
+
+  function escHTML(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
+  function escDoc(s) {
+    return escHTML(s).replace(/\r?\n/g, '<br>');
+  }
+
+  /* ============================================================
+     NAVEGACIÓN
+     ============================================================ */
+  function go(screen) {
+    var all = document.querySelectorAll('.screen');
+    for (var i = 0; i < all.length; i++) all[i].classList.remove('active');
+    var target = $('scr-' + screen);
+    if (target) target.classList.add('active');
+    window.scrollTo(0, 0);
+
+    if (screen === 'menu') renderMenu();
+    if (screen === 'report') renderReport();
+  }
+
+  /* ============================================================
+     LOGIN
+     ============================================================ */
+  function doLogin() {
+    var nombre = $('in-nombre').value.trim();
+    var curso = $('in-curso').value.trim();
+
+    if (nombre.length < 3) {
+      toast('Ingresá tu Apellido y Nombre completo.', 'err');
+      $('in-nombre').focus();
+      vib(60);
+      return;
+    }
+    if (curso.length < 2) {
+      toast('Ingresá tu Curso y División.', 'err');
+      $('in-curso').focus();
+      vib(60);
+      return;
+    }
+
+    S.alumno = nombre;
+    S.curso = curso;
+
+    var chip = $('userchip');
+    chip.textContent = nombre;
+    chip.classList.remove('hidden');
+
+    $('menu-name').textContent = nombre;
+    $('menu-curso').textContent = curso;
+
+    vib(20);
+    toast('Bienvenido/a, ' + nombre.split(',')[0], 'ok');
+    go('menu');
+  }
+
+  /* ============================================================
+     PANEL DE MISIONES
+     ============================================================ */
+  function renderMenu() {
+    $('menu-name').textContent = S.alumno;
+    $('menu-curso').textContent = S.curso;
+
+    ['m1', 'm2', 'm3'].forEach(function (k) {
+      var st = $('st-' + k);
+      var card = $('card-' + k);
+      if (S[k].done) {
+        st.textContent = 'COMPLETADA';
+        st.className = 'mstat ok';
+        card.classList.add('done');
+      } else {
+        st.textContent = 'PENDIENTE';
+        st.className = 'mstat pend';
+        card.classList.remove('done');
+      }
+    });
+
+    var all = S.m1.done && S.m2.done && S.m3.done;
+    var btn = $('go-report');
+    btn.disabled = !all;
+    btn.textContent = all
+      ? '📄 Ver y descargar informe'
+      : '🔒 Completá las 3 misiones para el informe';
+  }
+
+  /* ============================================================
+     MISIÓN 1 — RENDER
+     ============================================================ */
+  function renderM1() {
+    var box = $('m1-list');
+    box.innerHTML = '';
+
+    S.m1.disp.forEach(function (idx) {
+      var st = M1_STEPS[idx];
+      var pos = S.m1.sel.indexOf(idx);
+
+      var el = document.createElement('div');
+      el.className = 'step' + (pos > -1 ? ' sel' : '');
+      el.setAttribute('role', 'button');
+      el.setAttribute('tabindex', '0');
+
+      var badge = document.createElement('div');
+      badge.className = 'badge';
+      badge.textContent = pos > -1 ? String(pos + 1) : '·';
+
+      var body = document.createElement('div');
+      body.className = 'step-body';
+
+      var t = document.createElement('div');
+      t.className = 'step-t';
+      t.textContent = st.t;
+
+      var d = document.createElement('div');
+      d.className = 'step-d';
+      d.textContent = st.d;
+
+      body.appendChild(t);
+      body.appendChild(d);
+      el.appendChild(badge);
+      el.appendChild(body);
+
+      el.addEventListener('click', function () {
+        toggleSel('m1', idx, 4, renderM1);
+      });
+      el.addEventListener('keydown', function (ev) {
+        if (ev.key === 'Enter' || ev.key === ' ') {
+          ev.preventDefault();
+          toggleSel('m1', idx, 4, renderM1);
+        }
+      });
+
+      box.appendChild(el);
+    });
+
+    updateCounter('m1', 4);
+  }
+
+  /* ============================================================
+     MISIÓN 2 — RENDER
+     ============================================================ */
+  function renderM2() {
+    var box = $('m2-list');
+    box.innerHTML = '';
+
+    S.m2.disp.forEach(function (idx) {
+      var st = M2_STEPS[idx];
+      var pos = S.m2.sel.indexOf(idx);
+
+      var el = document.createElement('div');
+      el.className = 'step' + (pos > -1 ? ' sel' : '');
+      el.setAttribute('role', 'button');
+      el.setAttribute('tabindex', '0');
+
+      var badge = document.createElement('div');
+      badge.className = 'badge';
+      badge.textContent = pos > -1 ? String(pos + 1) : '·';
+
+      var body = document.createElement('div');
+      body.className = 'step-body';
+
+      var t = document.createElement('div');
+      t.className = 'step-t';
+      t.textContent = st.t;
+
+      var d = document.createElement('div');
+      d.className = 'step-d';
+      d.textContent = st.d;
+
+      body.appendChild(t);
+      body.appendChild(d);
+      el.appendChild(badge);
+      el.appendChild(body);
+
+      el.addEventListener('click', function () {
+        toggleSel('m2', idx, 4, renderM2);
+      });
+      el.addEventListener('keydown', function (ev) {
+        if (ev.key === 'Enter' || ev.key === ' ') {
+          ev.preventDefault();
+          toggleSel('m2', idx, 4, renderM2);
+        }
+      });
+
+      box.appendChild(el);
+    });
+
+    updateCounter('m2', 4);
+  }
+
+  /* ============================================================
+     SELECCIÓN GENÉRICA (M1 / M2)
+     ============================================================ */
+  function toggleSel(key, idx, total, rerender) {
+    if (S[key].done) return;
+
+    var sel = S[key].sel;
+    var p = sel.indexOf(idx);
+
+    if (p > -1) {
+      sel.splice(p, 1);
+    } else {
+      if (sel.length >= total) {
+        toast('Ya asignaste los ' + total + ' pasos. Quitá uno para reemplazarlo.', 'err');
+        vib(50);
+        return;
+      }
+      sel.push(idx);
+    }
+
+    vib(12);
+    rerender();
+  }
+
+  function updateCounter(key, total) {
+    var n = S[key].sel.length;
+    var c = $(key + '-counter');
+    var b = $(key + '-bar');
+    if (c) c.textContent = n + '/' + total;
+    if (b) b.style.width = ((n / total) * 100) + '%';
+  }
+
+  /* ============================================================
+     MISIÓN 3 — RENDER Y LÓGICA
+     ============================================================ */
+  function renderM3() {
+    var box = $('m3-actions');
+    box.innerHTML = '';
+
+    S.m3.disp.forEach(function (idx) {
+      var st = M3_STEPS[idx];
+      var done = idx < S.m3.idx;
+
+      var el = document.createElement('button');
+      el.type = 'button';
+      el.className = 'act' + (done ? ' done' : '');
+
+      var ico = document.createElement('span');
+      ico.className = 'act-ico';
+      ico.textContent = done ? '✓' : '▶';
+
+      var txt = document.createElement('span');
+      txt.className = 'act-txt';
+
+      var t = document.createElement('span');
+      t.className = 'act-t';
+      t.textContent = st.t;
+
+      var d = document.createElement('span');
+      d.className = 'act-d';
+      d.textContent = st.d;
+
+      txt.appendChild(t);
+      txt.appendChild(d);
+      el.appendChild(ico);
+      el.appendChild(txt);
+
+      el.addEventListener('click', function () {
+        execM3(idx, el);
+      });
+
+      box.appendChild(el);
+    });
+  }
+
+  function execM3(idx, el) {
+    if (S.m3.done) return;
+
+    if (idx !== S.m3.idx) {
+      el.classList.add('wrong');
+      setTimeout(function () { el.classList.remove('wrong'); }, 450);
+      vib([40, 60, 40]);
+      toast('Acción fuera de secuencia. Analizá el orden lógico del protocolo.', 'err');
+      addLog('err', 'Intento rechazado: "' + M3_STEPS[idx].t + '" no corresponde al paso ' + (S.m3.idx + 1) + '.');
+      return;
+    }
+
+    S.m3.idx++;
+    applyM3Visual(idx);
+    addLog('ok', M3_STEPS[idx].log);
+    renderM3();
+    vib(18);
+
+    if (S.m3.idx === 4) {
+      toast('Protocolo ejecutado. Completá tu conclusión.', 'ok');
+    }
+  }
+
+  function setNode(id, cls, status) {
+    var n = $(id);
+    if (!n) return;
+    n.classList.remove('active', 'offline', 'done');
+    if (cls) n.classList.add(cls);
+    var st = n.querySelector('.nd-st');
+    if (st) st.textContent = status;
+  }
+
+  function applyM3Visual(step) {
+    if (step === 0) {
+      setNode('nd-lb', 'active', 'BALANCEANDO');
+      setNode('nd-a', 'active', 'PROCESANDO');
+      setNode('nd-b', 'active', 'PROCESANDO');
+    } else if (step === 1) {
+      setNode('nd-a', 'offline', 'FALLO');
+      setNode('nd-b', 'active', 'PROCESANDO');
+      setNode('nd-lb', 'active', 'DEGRADADO');
+    } else if (step === 2) {
+      setNode('nd-c', 'active', 'ASIGNANDO');
+      setNode('nd-lb', '', 'RUTEADO');
+    } else if (step === 3) {
+      setNode('nd-c', 'done', 'COMPLETADO');
+      setNode('nd-b', 'done', 'COMPLETADO');
+      setNode('nd-san', 'done', 'SINCRONIZADO');
+      setNode('nd-lb', 'done', 'ESTABLE');
+    }
+  }
+
+  function addLog(type, text) {
+    var log = $('m3-log');
+    var item = document.createElement('div');
+    item.className = 'log-item' + (type ? ' ' + type : '');
+    item.innerHTML = '<b>&gt;</b> ' + escHTML(text);
+    log.appendChild(item);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  /* ============================================================
+     CONTADOR DE PALABRAS
+     ============================================================ */
+  function updateWC(key) {
+    var w = countWords(S[key].txt);
+    var el = $(key + '-wc');
+    if (!el) return;
+    el.className = 'wc ' + (w >= MIN_WORDS ? 'ok' : 'bad');
+    el.innerHTML = '<span>' + w + ' palabra' + (w === 1 ? '' : 's') + '</span><span>' +
+      (w >= MIN_WORDS ? '✓ mínimo alcanzado' : 'faltan ' + (MIN_WORDS - w)) + '</span>';
+  }
+
+  /* ============================================================
+     FEEDBACK
+     ============================================================ */
+  function fb(key, type, html) {
+    var el = $(key + '-fb');
+    el.className = 'feedback show ' + type;
+    el.innerHTML = html;
+  }
+
+  function fbConBoton(key, type, html) {
+    fb(key, type, html + '<button class="btn ghost fb-btn" type="button" data-go="menu">Volver al panel de misiones →</button>');
+  }
+
+  /* ============================================================
+     VALIDACIÓN MISIÓN 1
+     ============================================================ */
+  function checkM1() {
+    if (S.m1.done) { toast('La Misión 1 ya está completada.', 'ok'); return; }
+
+    if (S.m1.sel.length !== 4) {
+      toast('Asigná un número a los 4 pasos antes de validar.', 'err');
+      vib(60);
+      return;
+    }
+
+    var okOrder = true;
+    for (var i = 0; i < 4; i++) {
+      if (S.m1.sel[i] !== i) { okOrder = false; break; }
+    }
+
+    if (!okOrder) {
+      var correctos = 0;
+      for (var j = 0; j < 4; j++) {
+        if (S.m1.sel[j] === j) correctos++;
+      }
+      fb('m1', 'err',
+        '<b>✕ Secuencia incorrecta.</b><br>' +
+        'Tenés ' + correctos + ' de 4 posiciones bien ubicadas.<br><br>' +
+        '<b>Pista lógica:</b> primero el pedido del usuario → luego la interrupción de hardware que pausa la tarea → después el guardado del contexto en RAM y la carga en los registros de la CPU → por último la ejecución aislada en memoria virtual paginada.'
+      );
+      toast('El orden cronológico no es correcto.', 'err');
+      vib([40, 60, 40]);
+      return;
+    }
+
+    var w = countWords(S.m1.txt);
+    if (w < MIN_WORDS) {
+      fb('m1', 'err',
+        '<b>✕ Redacción insuficiente.</b><br>Tu conclusión técnica tiene <b>' + w + '</b> palabra' + (w === 1 ? '' : 's') +
+        ' y se requieren <b>' + MIN_WORDS + '</b> como mínimo.<br><br>' +
+        'Desarrollá más: mencioná el time-sharing, el rol del kernel, el cambio de contexto y el aislamiento de memoria.'
+      );
+      toast('Redacción muy corta: ' + w + '/' + MIN_WORDS + ' palabras.', 'err');
+      $('m1-text').focus();
+      vib([40, 60, 40]);
+      return;
+    }
+
+    S.m1.done = true;
+    fbConBoton('m1', 'ok',
+      '<b>✓ Misión 1 completada.</b><br>Secuencia cronológica correcta y conclusión técnica registrada con <b>' + w + '</b> palabras.'
+    );
+    $('m1-check').disabled = true;
+    $('m1-check').textContent = '✓ Misión 1 completada';
+    toast('Misión 1 validada correctamente.', 'ok');
+    vib([20, 40, 20]);
+  }
+
+  /* ============================================================
+     VALIDACIÓN MISIÓN 2
+     ============================================================ */
+  function checkM2() {
+    if (S.m2.done) { toast('La Misión 2 ya está completada.', 'ok'); return; }
+
+    if (S.m2.sel.length !== 4) {
+      toast('Asigná un número a los 4 pasos antes de validar.', 'err');
+      vib(60);
+      return;
+    }
+
+    var okOrder = true;
+    for (var i = 0; i < 4; i++) {
+      if (S.m2.sel[i] !== i) { okOrder = false; break; }
+    }
+
+    if (!okOrder) {
+      var correctos = 0;
+      for (var j = 0; j < 4; j++) {
+        if (S.m2.sel[j] === j) correctos++;
+      }
+      fb('m2', 'err',
+        '<b>✕ Secuencia incorrecta.</b><br>' +
+        'Tenés ' + correctos + ' de 4 posiciones bien ubicadas.<br><br>' +
+        '<b>Pista lógica:</b> el cliente encapsula la solicitud en TCP/IP → el paquete se enruta por switches y routers → el servidor lo procesa con su CPU y base de datos → la respuesta vuelve por la red hasta la pantalla del cliente.'
+      );
+      toast('El recorrido del paquete no es correcto.', 'err');
+      vib([40, 60, 40]);
+      return;
+    }
+
+    var w = countWords(S.m2.txt);
+    if (w < MIN_WORDS) {
+      fb('m2', 'err',
+        '<b>✕ Justificación insuficiente.</b><br>Tu texto tiene <b>' + w + '</b> palabra' + (w === 1 ? '' : 's') +
+        ' y se requieren <b>' + MIN_WORDS + '</b> como mínimo.<br><br>' +
+        'Argumentá sobre la centralización de recursos, los roles asimétricos y el uso de protocolos definidos (TCP/IP, HTTP, SSH, RDP).'
+      );
+      toast('Justificación muy corta: ' + w + '/' + MIN_WORDS + ' palabras.', 'err');
+      $('m2-text').focus();
+      vib([40, 60, 40]);
+      return;
+    }
+
+    S.m2.done = true;
+    fbConBoton('m2', 'ok',
+      '<b>✓ Misión 2 completada.</b><br>Ruta del paquete reconstruida correctamente y justificación registrada con <b>' + w + '</b> palabras.'
+    );
+    $('m2-check').disabled = true;
+    $('m2-check').textContent = '✓ Misión 2 completada';
+    toast('Misión 2 validada correctamente.', 'ok');
+    vib([20, 40, 20]);
+  }
+
+  /* ============================================================
+     VALIDACIÓN MISIÓN 3
+     ============================================================ */
+  function checkM3() {
+    if (S.m3.done) { toast('La Misión 3 ya está completada.', 'ok'); return; }
+
+    if (S.m3.idx < 4) {
+      fb('m3', 'err',
+        '<b>✕ Protocolo incompleto.</b><br>Ejecutaste ' + S.m3.idx + ' de 4 acciones. Completá la secuencia antes de validar.'
+      );
+      toast('Ejecutá las 4 acciones del protocolo.', 'err');
+      vib(60);
+      return;
+    }
+
+    var w = countWords(S.m3.txt);
+    if (w < MIN_WORDS) {
+      fb('m3', 'err',
+        '<b>✕ Conclusión insuficiente.</b><br>Tu texto tiene <b>' + w + '</b> palabra' + (w === 1 ? '' : 's') +
+        ' y se requieren <b>' + MIN_WORDS + '</b> como mínimo.<br><br>' +
+        'Profundizá sobre replicación de datos, balanceo de carga, algoritmos de consenso, pasaje de mensajes y ausencia de punto único de fallo.'
+      );
+      toast('Conclusión muy corta: ' + w + '/' + MIN_WORDS + ' palabras.', 'err');
+      $('m3-text').focus();
+      vib([40, 60, 40]);
+      return;
+    }
+
+    S.m3.done = true;
+    fbConBoton('m3', 'ok',
+      '<b>✓ Misión 3 completada.</b><br>Protocolo de tolerancia a fallos ejecutado y conclusión registrada con <b>' + w + '</b> palabras.'
+    );
+    $('m3-check').disabled = true;
+    $('m3-check').textContent = '✓ Misión 3 completada';
+    toast('Misión 3 validada correctamente.', 'ok');
+    vib([20, 40, 20]);
+  }
+
+  /* ============================================================
+     INFORME — RENDER
+     ============================================================ */
+  function renderReport() {
+    var bloques = [
+      { key: 'm1', id: 'rep-m1', titulo: 'Misión 1 · Multiusuario / Time-Sharing' },
+      { key: 'm2', id: 'rep-m2', titulo: 'Misión 2 · Cliente-Servidor' },
+      { key: 'm3', id: 'rep-m3', titulo: 'Misión 3 · Sistemas Distribuidos' }
+    ];
+
+    bloques.forEach(function (b) {
+      var el = $(b.id);
+      var data = S[b.key];
+      var estado = data.done
+        ? '<span style="color:#2ee06a;font-weight:700;">COMPLETADA</span>'
+        : '<span style="color:#f5a623;font-weight:700;">PENDIENTE</span>';
+      var texto = data.txt && data.txt.trim().length > 0
+        ? escHTML(data.txt)
+        : '<span class="empty">Sin redacción registrada.</span>';
+
+      el.innerHTML =
+        '<h4>' + b.titulo + ' — ' + estado + '</h4>' +
+        '<p>' + texto + '</p>';
+    });
+
+    var all = S.m1.done && S.m2.done && S.m3.done;
+    var btn = $('btn-doc');
+    btn.disabled = !all;
+    btn.textContent = all
+      ? '📄 Descargar Informe de Práctica (.doc)'
+      : '🔒 Completá las 3 misiones para descargar';
+  }
+
+  /* ============================================================
+     GENERACIÓN DEL ARCHIVO .DOC
+     ============================================================ */
+  function buildDocHTML() {
+    var fecha = new Date().toLocaleString('es-AR', {
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    });
+
+    var estadoM1 = S.m1.done ? 'COMPLETADA' : 'PENDIENTE';
+    var estadoM2 = S.m2.done ? 'COMPLETADA' : 'PENDIENTE';
+    var estadoM3 = S.m3.done ? 'COMPLETADA' : 'PENDIENTE';
+
+    var m1Seq = M1_STEPS.map(function (s) { return s.t; });
+    var m2Seq = M2_STEPS.map(function (s) { return s.t; });
+    var m3Seq = M3_STEPS.map(function (s) { return s.t; });
+
+    function seccion(num, titulo, consigna, secuencia, respuesta, estado) {
+      var s = '';
+      s += '<h2>Misión ' + num + ' &mdash; ' + titulo + '</h2>';
+      s += '<p class="small"><b>Consigna:</b> ' + consigna + '</p>';
+      s += '<p><b>Secuencia correcta resuelta por el alumno:</b></p>';
+      s += '<ol>';
+      for (var i = 0; i < secuencia.length; i++) {
+        s += '<li>' + secuencia[i] + '</li>';
+      }
+      s += '</ol>';
+      s += '<p><b>Estado de resolución:</b> ' + estado + '</p>';
+      s += '<div class="box"><b>Redacción del alumno:</b><br><br>' + escDoc(respuesta) + '</div>';
+      return s;
+    }
+
+    var docCSS =
+      '@page { size: 21cm 29.7cm; margin: 2cm 2cm 2cm 2cm; }' +
+      'body { font-family: Arial, Helvetica, sans-serif; font-size: 11pt; color: #111111; line-height: 1.45; }' +
+      'h1 { font-size: 17pt; margin: 0 0 3pt 0; color: #0b3c4d; }' +
+      'h2 { font-size: 13pt; margin: 20pt 0 7pt 0; color: #0b3c4d; border-bottom: 1px solid #9bb3bd; padding-bottom: 3pt; }' +
+      'h3 { font-size: 11.5pt; margin: 0 0 10pt 0; color: #333333; font-weight: normal; }' +
+      'p { margin: 0 0 7pt 0; }' +
+      'table { border-collapse: collapse; width: 100%; font-size: 10.5pt; margin: 10pt 0 4pt 0; }' +
+      'th, td { border: 1px solid #9bb3bd; padding: 6pt 8pt; text-align: left; vertical-align: top; }' +
+      'th { background: #e8f1f4; font-weight: bold; }' +
+      '.small { font-size: 9.5pt; color: #555555; }' +
+      '.box { border: 1px solid #9bb3bd; background: #f7fafb; padding: 9pt; margin-top: 6pt; }' +
+      '.firma { margin-top: 34pt; border-top: 1px solid #666666; width: 60%; padding-top: 4pt; font-size: 9.5pt; color: #555555; }' +
+      'ol { margin: 0 0 9pt 18pt; padding: 0; }' +
+      'li { margin-bottom: 3pt; }';
+
+    var body = '';
+    body += '<h1>TRABAJO PRÁCTICO DE REDES</h1>';
+    body += '<h3>Sistemas Multiusuario, Cliente-Servidor y Distribuidos &mdash; Arquitecturas de red: del modelo teórico a la infraestructura física.</h3>';
+
+    body += '<table>';
+    body += '<tr><th style="width:32%;">Apellido y Nombre</th><td>' + escDoc(S.alumno) + '</td></tr>';
+    body += '<tr><th>Curso / División</th><td>' + escDoc(S.curso) + '</td></tr>';
+    body += '<tr><th>Fecha de emisión</th><td>' + escDoc(fecha) + '</td></tr>';
+    body += '<tr><th>Modalidad</th><td>Simulador técnico interactivo (3 misiones)</td></tr>';
+    body += '</table>';
+
+    body += '<h2>Resumen de misiones</h2>';
+    body += '<table>';
+    body += '<tr><th style="width:12%;">N°</th><th>Misión</th><th style="width:22%;">Estado</th></tr>';
+    body += '<tr><td>01</td><td>Multiusuario / Time-Sharing &mdash; Ruta del Dato</td><td>' + estadoM1 + '</td></tr>';
+    body += '<tr><td>02</td><td>Cliente-Servidor &mdash; Ruta del Paquete</td><td>' + estadoM2 + '</td></tr>';
+    body += '<tr><td>03</td><td>Sistemas Distribuidos &mdash; Tolerancia a Fallos</td><td>' + estadoM3 + '</td></tr>';
+    body += '</table>';
+
+    body += seccion(
+      '01',
+      'Multiusuario / Time-Sharing',
+      'Ordenar cronológicamente la Ruta del Dato Multiusuario y redactar una conclusión técnica sobre el cambio de contexto y el aislamiento entre sesiones.',
+      m1Seq,
+      S.m1.txt,
+      estadoM1
+    );
+
+    body += seccion(
+      '02',
+      'Cliente-Servidor &mdash; Ruta del Paquete',
+      'Reconstruir el recorrido de una petición desde el navegador del cliente hasta la respuesta del servidor, y justificar el modelo de roles asimétricos.',
+      m2Seq,
+      S.m2.txt,
+      estadoM2
+    );
+
+    body += seccion(
+      '03',
+      'Sistemas Distribuidos &mdash; Tolerancia a Fallos',
+      'Ejecutar el protocolo de recuperación ante el fallo catastrófico del Nodo A en un clúster de tres nodos con almacenamiento SAN compartido, y concluir sobre la resiliencia del sistema.',
+      m3Seq,
+      S.m3.txt,
+      estadoM3
+    );
+
+    body += '<h2>Criterio de cierre</h2>';
+    body += '<p>Ninguna arquitectura es universalmente superior. La elección de la infraestructura debe dictarse por un análisis estricto de los requisitos de disponibilidad, el volumen de presupuesto de hardware y la escala proyectada del entorno real.</p>';
+
+    body += '<div class="firma">Firma del alumno &mdash; ' + escDoc(S.alumno) + ' &mdash; ' + escDoc(S.curso) + '</div>';
+
+    var html = '';
+    html += '<html xmlns:o="urn:schemas-microsoft-com:office:office" ';
+    html += 'xmlns:w="urn:schemas-microsoft-com:office:word" ';
+    html += 'xmlns="http://www.w3.org/TR/REC-html40">';
+    html += '<head><meta charset="utf-8">';
+    html += '<title>Informe de Práctica - Redes</title>';
+    html += '<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View>';
+    html += '<w:Zoom>100</w:Zoom><w:DoNotOptimizeForBrowser/></w:WordDocument></xml><![endif]-->';
+    html += '<style>' + docCSS + '</style>';
+    html += '</head><body>' + body + '</body></html>';
+
+    return html;
+  }
+
+  function descargarDoc() {
+    if (!(S.m1.done && S.m2.done && S.m3.done)) {
+      toast('Todavía hay misiones pendientes.', 'err');
+      return;
+    }
+
+    try {
+      var html = buildDocHTML();
+      var blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+
+      var base = S.alumno
+        .replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s]/g, '')
+        .trim()
+        .replace(/\s+/g, '_');
+
+      if (!base) base = 'Alumno';
+
+      var nombreArchivo = 'Informe_Redes_' + base + '.doc';
+
+      if (window.navigator && window.navigator.msSaveOrOpenBlob) {
+        window.navigator.msSaveOrOpenBlob(blob, nombreArchivo);
+        toast('Informe generado correctamente.', 'ok');
+        return;
+      }
+
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = nombreArchivo;
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+
+      setTimeout(function () {
+        if (a.parentNode) a.parentNode.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 2000);
+
+      toast('Descargando: ' + nombreArchivo, 'ok');
+      vib([20, 40, 20]);
+    } catch (err) {
+      toast('Error al generar el archivo. Reintentá.', 'err');
+    }
+  }
+
+  /* ============================================================
+     EVENTOS
+     ============================================================ */
+  function bind() {
+    $('btn-login').addEventListener('click', doLogin);
+
+    $('in-nombre').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); $('in-curso').focus(); }
+    });
+    $('in-curso').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); doLogin(); }
+    });
+
+    /* Delegación para navegación */
+    document.addEventListener('click', function (e) {
+      var t = e.target.closest ? e.target.closest('[data-go]') : null;
+      if (t) {
+        var dest = t.getAttribute('data-go');
+        go(dest);
+      }
+    });
+
+    /* Misión 1 */
+    $('m1-reset').addEventListener('click', function () {
+      if (S.m1.done) return;
+      S.m1.sel = [];
+      renderM1();
+      vib(12);
+      toast('Orden reiniciado.', 'ok');
+    });
+    $('m1-text').addEventListener('input', function (e) {
+      S.m1.txt = e.target.value;
+      updateWC('m1');
+    });
+    $('m1-check').addEventListener('click', checkM1);
+
+    /* Misión 2 */
+    $('m2-reset').addEventListener('click', function () {
+      if (S.m2.done) return;
+      S.m2.sel = [];
+      renderM2();
+      vib(12);
+      toast('Orden reiniciado.', 'ok');
+    });
+    $('m2-text').addEventListener('input', function (e) {
+      S.m2.txt = e.target.value;
+      updateWC('m2');
+    });
+    $('m2-check').addEventListener('click', checkM2);
+
+    /* Misión 3 */
+    $('m3-text').addEventListener('input', function (e) {
+      S.m3.txt = e.target.value;
+      updateWC('m3');
+    });
+    $('m3-check').addEventListener('click', checkM3);
+
+    /* Informe */
+    $('go-report').addEventListener('click', function () {
+      if (!(S.m1.done && S.m2.done && S.m3.done)) {
+        toast('Completá las tres misiones primero.', 'err');
+        return;
+      }
+      go('report');
+    });
+
+    $('btn-doc').addEventListener('click', descargarDoc);
+  }
+
+  /* ============================================================
+     INICIALIZACIÓN
+     ============================================================ */
+  function init() {
+    S.m1.disp = shuffleDistinct(4);
+    S.m2.disp = shuffleDistinct(4);
+    S.m3.disp = shuffleDistinct(4);
+
+    renderM1();
+    renderM2();
+    renderM3();
+
+    updateWC('m1');
+    updateWC('m2');
+    updateWC('m3');
+
+    bind();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+
+})();
+</script>
+</body>
+</html>
